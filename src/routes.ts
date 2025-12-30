@@ -11,7 +11,7 @@ router.get("/", (_req, res) => {
             if (err) {
                 console.error(`Error querying db: ${err}`)
             } else {
-                console.log(`Raw response: ${dbResp}`)
+                console.log("Raw response: ", {dbResp})
                 res.status(301);
                 res.redirect("/pages/status/index.html")
             }
