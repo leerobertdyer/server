@@ -16,8 +16,4 @@ app.use(express.json());
 
 app.use(router);
 
-// Simple health route for render to check periodically
-// For browser health check go to {site}/health/index.html
-app.get("/health", (_req, res) => res.sendStatus(200));
-
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
