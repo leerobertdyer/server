@@ -5,8 +5,12 @@ import path from 'path'
 const PORT = process.env.PORT;
 const app = express();
 
-app.use(express.static(path.join(__dirname, "public")))
+// Get static assets at public folder using built in express.static middleware
+// Allows fetching of static content (html/css) and also allows the relative href in <link /> elements
+app.use(express.static(path.join(process.cwd(), "public")))
 
-
+// Simple health route for render to check periodically
+// For browser health check go to {site}/health/index.html
+app.get("/health", (_req, res) => res.sendStatus(200));
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

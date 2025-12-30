@@ -8,7 +8,9 @@
       "allowSyntheticDefaultImports": true,
       "rootDir": "src",
       "outDir": "dist",
-      "sourceMap": true
+      "sourceMap": true,
+      "skipLibCheck": true
+
     },
     "include": ["src/**/*"],
     "exclude": ["**/*.spec.ts"]
