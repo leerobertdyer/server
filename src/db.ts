@@ -1,7 +1,7 @@
 import { Pool }  from 'pg'
 
 // Use your actual connection string, ideally from an environment variable
-const connectionString = process.env.RENDER_PGDB_INTERNAL_CONNECTION || '';
+const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({
   connectionString,
