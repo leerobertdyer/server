@@ -71,7 +71,7 @@ Each piece I create is made with love and care, designed to be unique and specia
 
 Visit the shop: https://erindawncampbell.com/shop
 
-With love,
+Thank you!
 Erin Dawn Campbell
 
 ---
@@ -190,4 +190,63 @@ Erin Dawn Campbell
 Unsubscribe: ${BACKEND_URL}/unsubscribe?email=${encodeURIComponent(
     recipientEmail
   )}`,
+});
+
+type ReceiptEmailTemplate = (
+  customerName: string,
+  imageLinks: string[]
+) => {
+  text: string;
+  html: string;
+};
+
+export const receiptEmailTemplate: ReceiptEmailTemplate = (
+  customerName,
+  imageLinks
+) => ({
+  html: `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt from ErinDawnCampbell.com</title>
+</head>
+<body>
+    <body style="font-family: 'Georgia', serif; margin: 0; padding: 0; background-color: #faf8f5;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="background-color: #ffffff; border-radius: 8px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h1 style="color: #6b5b7a; margin: 0 0 20px 0; font-size: 28px; font-weight: normal;">
+                    Thank you${customerName ? `, ${customerName}` : ""}!
+                </h1>
+                <div style="color: #4a4a4a; line-height: 1.8; font-size: 16px; margin: 0 0 20px 0">
+                    <p>Every sale makes a huge difference to me as a solo entrepreneur.</p>
+                    <p>I do my best to ship things out asap, please reach out if you have any questions or concerns.</p>
+                </div>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
+                  <tbody>
+                    ${imageLinks
+                      .map(
+                        (imageLink) => `
+                      <tr>
+                        <td align="center" style="padding-bottom: 4px;">
+                          <img src="${imageLink}" width="250" height="250" style="display: block; object-fit: cover;" alt="product picture" />
+                        </td>
+                      </tr>
+                    `
+                      )
+                      .join("")}
+                  </tbody>
+                </table>
+                <p style="color: #888; font-size: 14px; margin-top: 40px; text-align: center;">
+                    xoxo,<br>
+                    <strong style="color: #6b5b7a;">Erin Dawn Campbell</strong>
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `,
+  text: `Thank you${
+    customerName ? `, ${customerName}` : ""
+  }!. Every sale makes a huge difference to me as a solo entrepreneur. I do my best to ship things out asap, please reach out if you have any questions or concerns. xoxo, Erin Dawn`,
 });

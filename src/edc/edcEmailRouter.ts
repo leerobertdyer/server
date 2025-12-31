@@ -1,7 +1,7 @@
 import router from "express";
 import nodemailer from "nodemailer";
 import { db } from './firebaseAdmin';
-import { welcomeEmailTemplate, newSeriesEmailTemplate } from './emailTemplates';
+import { welcomeEmailTemplate, newSeriesEmailTemplate, receiptEmailTemplate } from './emailTemplates';
 
 const edcEmailRouter = router();
 
@@ -31,12 +31,12 @@ transporter.verify(function(error, success) {
 });
 
 edcEmailRouter.post("/send-sale-notification-email", async (req, res) => {
-    const { customerName, shippingAddressString, itemsSold } = req.body;
-    console.log('Received email request:', {customerName, shippingAddressString, itemsSold});
+    const { customerName, customerEmail, shippingAddressString, itemsSold, soldPhotoLinks } = req.body;
+    console.log('Received email request:', {customerName, customerEmail, shippingAddressString, itemsSold});
     
     try {
         // Send emails to all recipients
-        const emailPromises = businessEmails.map(email => {
+        const adminEmails = businessEmails.map(email => {
             return transporter.sendMail({
                 from: `"Erin Dawn Sales" <${GMAIL_USER}>`,
                 to: email,
@@ -44,10 +44,21 @@ edcEmailRouter.post("/send-sale-notification-email", async (req, res) => {
                 text: `${customerName} Just bought: \n ${itemsSold.join("\n")} \n\nThe order was added to your admin panel as unshipped. Here is the address: \n\n ${shippingAddressString}`
             });
         });
+
+        // Send receipt to customer
+        const receiptEmailData = receiptEmailTemplate(customerName, soldPhotoLinks)
+        const customerResults = await transporter.sendMail({
+            from: `"Erin Dawn" <${GMAIL_USER}>`,
+            to: customerEmail,
+            subject: "Purchase Details From ErinDawnCampbell.com",
+            html: receiptEmailData.html,
+            text: receiptEmailData.text
+        })
         
         // Wait for all emails to be sent
-        const results = await Promise.all(emailPromises);
-        console.log(`Successfully sent ${results.length} emails`);
+        const adminResults = await Promise.all(adminEmails);
+        const count = adminResults.length + (customerResults.accepted?.length ?? 0);
+        console.log(`Successfully sent ${count} emails`);
         
         // Send success response
         res.status(200).json({ success: true, message: 'Emails sent successfully' });
