@@ -1,7 +1,7 @@
 import router from "express";
-import nodemailer from "nodemailer";
 import { db } from './firebaseAdmin';
 import { welcomeEmailTemplate, newSeriesEmailTemplate, receiptEmailTemplate } from './emailTemplates';
+import { transporter, GMAIL_USER } from '../nodemailer';
 
 const edcEmailRouter = router();
 
@@ -10,25 +10,6 @@ const businessEmails = [
     "lee.dyer.dev@gmail.com",
     "erin.d.campbell@gmail.com"
 ];
-
-const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-
-// Create the transporter using Gmail SMTP
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: GMAIL_USER,
-        pass: GMAIL_APP_PASSWORD
-    }
-});
-
-// Verify the connection configuration
-transporter.verify(function(error, success) {
-    if (error) {
-        console.error('Gmail SMTP connection error:', error);
-    } 
-});
 
 edcEmailRouter.post("/send-sale-notification-email", async (req, res) => {
     const { customerName, customerEmail, shippingAddressString, itemsSold, soldPhotoLinks } = req.body;
