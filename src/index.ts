@@ -5,6 +5,7 @@ import cors, { CorsOptionsDelegate } from 'cors';
 import router from './routes';
 import edcStripeRouter from "./edc/edcStripeRouter"
 import edcEmailRouter from "./edc/edcEmailRouter";
+import edcSeoRouter from "./edc/edcSeoRouter";
 import avEmailRouter from "./auntVicki/avEmailRouter";
 
 const allowlist = new Set([
@@ -44,6 +45,7 @@ app.use(express.json());
 app.use(router);
 app.use('/edc-api', edcStripeRouter)
 app.use('/edc-api', edcEmailRouter)
+app.use('/edc-api', edcSeoRouter)
 app.use('/av-api', avEmailRouter)
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
