@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/leerobertdyer/server#readme",
   "dependencies": {
+    "@google-analytics/data": "^4.9.0",
     "@types/stripe": "^8.0.417",
     "axios": "^1.13.2",
     "cors": "^2.8.5",

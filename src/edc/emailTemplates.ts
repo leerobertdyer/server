@@ -250,3 +250,79 @@ export const receiptEmailTemplate: ReceiptEmailTemplate = (
     customerName ? `, ${customerName}` : ""
   }!. Every sale makes a huge difference to me as a solo entrepreneur. I do my best to ship things out asap, please reach out if you have any questions or concerns. xoxo, Erin Dawn`,
 });
+
+type DailyReportParams = {
+  dateLabel: string;
+  traffic: { users: number; sessions: number; pageViews: number } | null;
+  newSubscribers: { email?: string; firstName?: string; lastName?: string }[];
+  salesToday: { customerName?: string; grandTotal?: number; itemsSold?: string[] }[];
+  totalSubscribers: number;
+};
+
+export const dailyReportEmailTemplate = ({
+  dateLabel,
+  traffic,
+  newSubscribers,
+  salesToday,
+  totalSubscribers,
+}: DailyReportParams): { subject: string; html: string; text: string } => {
+  const trafficHtml = traffic
+    ? `<p style="color: #4a4a4a; margin: 0 0 16px 0;"><strong>Site traffic (visitors on erindawncampbell.com):</strong></p><p style="color: #4a4a4a; margin: 0 0 20px 0;">${traffic.users} users · ${traffic.sessions} sessions · ${traffic.pageViews} page views</p>`
+    : `<p style="color: #888; font-size: 14px; margin: 0 0 20px 0;">Site traffic: Not configured (set GA4_PROPERTY_ID and grant your service account Viewer access in GA4 to enable).</p>`;
+  const trafficText = traffic
+    ? `Site traffic (visitors on erindawncampbell.com): ${traffic.users} users, ${traffic.sessions} sessions, ${traffic.pageViews} page views\n\n`
+    : "Site traffic: Not configured\n\n";
+
+  const subscribersListHtml =
+    newSubscribers.length > 0
+      ? `<ul style="color: #4a4a4a; margin: 0 0 20px 0;">${newSubscribers
+          .map(
+            (s) =>
+              `<li>${s.email}${s.firstName || s.lastName ? ` (${[s.firstName, s.lastName].filter(Boolean).join(" ")})` : ""}</li>`
+          )
+          .join("")}</ul>`
+      : "";
+  const salesListHtml =
+    salesToday.length > 0
+      ? `<ul style="color: #4a4a4a; margin: 0 0 20px 0;">${salesToday
+          .map(
+            (s) =>
+              `<li>${s.customerName} — $${s.grandTotal ?? 0} — ${(s.itemsSold ?? []).join(", ")}</li>`
+          )
+          .join("")}</ul>`
+      : "";
+  const subscribersListText =
+    newSubscribers.length > 0
+      ? newSubscribers.map((s) => `  - ${s.email}`).join("\n") + "\n"
+      : "";
+  const salesListText =
+    salesToday.length > 0
+      ? salesToday
+          .map(
+            (s) =>
+              `  - ${s.customerName} — $${s.grandTotal ?? 0} — ${(s.itemsSold ?? []).join(", ")}`
+          )
+          .join("\n") + "\n"
+      : "";
+
+  return {
+    subject: `Erin Dawn Daily Report — ${dateLabel}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Daily Report</title></head>
+<body style="font-family: Georgia, serif; margin: 0; padding: 20px; background-color: #faf8f5;">
+    <div style="max-width: 560px; margin: 0 auto; background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <h1 style="color: #6b5b7a; margin: 0 0 24px 0;">Daily Report — ${dateLabel}</h1>
+        ${trafficHtml}
+        <p style="color: #4a4a4a; margin: 0 0 16px 0;"><strong>New subscribers today:</strong> ${newSubscribers.length}</p>
+        ${subscribersListHtml}
+        <p style="color: #4a4a4a; margin: 0 0 16px 0;"><strong>Sales today:</strong> ${salesToday.length}</p>
+        ${salesListHtml}
+        <p style="color: #888; font-size: 14px; margin: 24px 0 0 0;">Total subscribers: ${totalSubscribers}</p>
+    </div>
+</body>
+</html>`,
+    text: `Daily Report — ${dateLabel}\n\n${trafficText}New subscribers today: ${newSubscribers.length}\n${subscribersListText}Sales today: ${salesToday.length}\n${salesListText}Total subscribers: ${totalSubscribers}`,
+  };
+};

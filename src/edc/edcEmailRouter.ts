@@ -1,9 +1,54 @@
 import router from "express";
+import admin from "firebase-admin";
 import { db } from './firebaseAdmin';
-import { welcomeEmailTemplate, newSeriesEmailTemplate, receiptEmailTemplate } from './emailTemplates';
+import { welcomeEmailTemplate, newSeriesEmailTemplate, receiptEmailTemplate, dailyReportEmailTemplate } from './emailTemplates';
 import { transporter, GMAIL_USER } from '../nodemailer';
 
 const edcEmailRouter = router();
+
+/** Start of today UTC and start of next day (exclusive end) for daily report window */
+function getTodayUTC(): { start: Date; endExclusive: Date } {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  const endExclusive = new Date(start);
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  return { start, endExclusive };
+}
+
+/** GA4 traffic for one day (site visitors). Returns null if not configured or API fails. */
+async function getGA4DailyTraffic(dateLabel: string): Promise<{ users: number; sessions: number; pageViews: number } | null> {
+  const propertyId = process.env.GA4_PROPERTY_ID;
+  if (!propertyId || !propertyId.trim()) return null;
+  try {
+    const { BetaAnalyticsDataClient } = await import("@google-analytics/data");
+    let client: InstanceType<typeof BetaAnalyticsDataClient>;
+    const credsJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (credsJson) {
+      const creds = JSON.parse(credsJson) as { client_email?: string; private_key?: string };
+      client = new BetaAnalyticsDataClient({ credentials: { client_email: creds.client_email, private_key: creds.private_key } });
+    } else {
+      client = new BetaAnalyticsDataClient();
+    }
+    const [response] = await client.runReport({
+      property: `properties/${propertyId.trim()}`,
+      dateRanges: [{ startDate: dateLabel, endDate: dateLabel }],
+      metrics: [
+        { name: "activeUsers" },
+        { name: "sessions" },
+        { name: "screenPageViews" },
+      ],
+    });
+    const row = response.rows?.[0];
+    if (!row?.metricValues?.length) return null;
+    const users = Number(row.metricValues[0]?.value ?? 0);
+    const sessions = Number(row.metricValues[1]?.value ?? 0);
+    const pageViews = Number(row.metricValues[2]?.value ?? 0);
+    return { users, sessions, pageViews };
+  } catch (err) {
+    console.error("GA4 daily traffic fetch failed:", err);
+    return null;
+  }
+}
 
 // Gmail SMTP Setup
 const businessEmails = [
@@ -134,6 +179,72 @@ edcEmailRouter.post("/send-new-series-email", async (req, res) => {
         res.status(500).json({ success: false, error: error });
     }
 })
+
+// Daily report: POST from cron; requires x-daily-report-secret header to match DAILY_REPORT_SECRET
+edcEmailRouter.post("/send-daily-report", async (req, res) => {
+  const secret = process.env.DAILY_REPORT_SECRET;
+  if (!secret || req.headers["x-daily-report-secret"] !== secret) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
+  try {
+    const { start, endExclusive } = getTodayUTC();
+    const dateLabel = start.toISOString().slice(0, 10);
+
+    const subscribersSnap = await db
+      .collection("subscribers")
+      .where("subscribedAt", ">=", start.toISOString())
+      .where("subscribedAt", "<", endExclusive.toISOString())
+      .get();
+    const newSubscribers = subscribersSnap.docs.map((d) => d.data());
+
+    const salesSnap = await db
+      .collection("sales")
+      .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(start))
+      .where("createdAt", "<", admin.firestore.Timestamp.fromDate(endExclusive))
+      .get();
+    const salesToday = salesSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as {
+      id: string;
+      customerName?: string;
+      grandTotal?: number;
+      itemsSold?: string[];
+    }[];
+
+    const totalSubscribersSnap = await db.collection("subscribers").get();
+    const totalSubscribers = totalSubscribersSnap.size;
+
+    const traffic = await getGA4DailyTraffic(dateLabel);
+    const { subject, html, text } = dailyReportEmailTemplate({
+      dateLabel,
+      traffic,
+      newSubscribers,
+      salesToday,
+      totalSubscribers,
+    });
+
+    const emailPromises = businessEmails.map((to) =>
+      transporter.sendMail({
+        from: `"Erin Dawn" <${GMAIL_USER}>`,
+        to,
+        subject,
+        html,
+        text,
+      })
+    );
+    await Promise.all(emailPromises);
+
+    console.log(`Daily report sent for ${dateLabel} to ${businessEmails.length} recipients`);
+    res.status(200).json({
+      success: true,
+      message: `Report sent for ${dateLabel}`,
+      newSubscribers: newSubscribers.length,
+      salesToday: salesToday.length,
+    });
+  } catch (error) {
+    console.error("Error sending daily report:", error);
+    res.status(500).json({ success: false, error: String(error) });
+  }
+});
 
 // Unsubscribe route - GET so users can click the link directly
 edcEmailRouter.get("/unsubscribe", async (req, res) => {
