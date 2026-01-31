@@ -251,7 +251,7 @@ export const receiptEmailTemplate: ReceiptEmailTemplate = (
   }!. Every sale makes a huge difference to me as a solo entrepreneur. I do my best to ship things out asap, please reach out if you have any questions or concerns. xoxo, Erin Dawn`,
 });
 
-type DailyReportParams = {
+export type DailyReportParams = {
   dateLabel: string;
   traffic: { users: number; sessions: number; pageViews: number } | null;
   newSubscribers: { email?: string; firstName?: string; lastName?: string }[];
@@ -266,10 +266,10 @@ export const dailyReportEmailTemplate = ({
   salesToday,
   totalSubscribers,
 }: DailyReportParams): { subject: string; html: string; text: string } => {
-  const trafficHtml = traffic
+  const trafficHtml = traffic != null
     ? `<p style="color: #4a4a4a; margin: 0 0 16px 0;"><strong>Site traffic (visitors on erindawncampbell.com):</strong></p><p style="color: #4a4a4a; margin: 0 0 20px 0;">${traffic.users} users · ${traffic.sessions} sessions · ${traffic.pageViews} page views</p>`
     : `<p style="color: #888; font-size: 14px; margin: 0 0 20px 0;">Site traffic: Not configured (set GA4_PROPERTY_ID and grant your service account Viewer access in GA4 to enable).</p>`;
-  const trafficText = traffic
+  const trafficText = traffic != null
     ? `Site traffic (visitors on erindawncampbell.com): ${traffic.users} users, ${traffic.sessions} sessions, ${traffic.pageViews} page views\n\n`
     : "Site traffic: Not configured\n\n";
 

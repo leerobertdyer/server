@@ -1,5 +1,6 @@
 import router from "express";
 import admin from "firebase-admin";
+import fs from "fs";
 import { db } from './firebaseAdmin';
 import { welcomeEmailTemplate, newSeriesEmailTemplate, receiptEmailTemplate, dailyReportEmailTemplate } from './emailTemplates';
 import { transporter, GMAIL_USER } from '../nodemailer';
@@ -15,20 +16,29 @@ function getTodayUTC(): { start: Date; endExclusive: Date } {
   return { start, endExclusive };
 }
 
-/** GA4 traffic for one day (site visitors). Returns null if not configured or API fails. */
+/** GA4 traffic for one day. Returns null if not configured or API fails. */
 async function getGA4DailyTraffic(dateLabel: string): Promise<{ users: number; sessions: number; pageViews: number } | null> {
   const propertyId = process.env.GA4_PROPERTY_ID;
   if (!propertyId || !propertyId.trim()) return null;
   try {
     const { BetaAnalyticsDataClient } = await import("@google-analytics/data");
-    let client: InstanceType<typeof BetaAnalyticsDataClient>;
+    let creds: { client_email?: string; private_key?: string } | undefined;
     const credsJson = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (credsJson) {
-      const creds = JSON.parse(credsJson) as { client_email?: string; private_key?: string };
-      client = new BetaAnalyticsDataClient({ credentials: { client_email: creds.client_email, private_key: creds.private_key } });
+      creds = JSON.parse(credsJson) as { client_email?: string; private_key?: string };
     } else {
-      client = new BetaAnalyticsDataClient();
+      const keyPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      if (keyPath && fs.existsSync(keyPath)) {
+        const raw = fs.readFileSync(keyPath, "utf8");
+        creds = JSON.parse(raw) as { client_email?: string; private_key?: string };
+      }
     }
+    const client =
+      creds?.client_email && creds?.private_key
+        ? new BetaAnalyticsDataClient({
+            credentials: { client_email: creds.client_email, private_key: creds.private_key },
+          })
+        : new BetaAnalyticsDataClient();
     const [response] = await client.runReport({
       property: `properties/${propertyId.trim()}`,
       dateRanges: [{ startDate: dateLabel, endDate: dateLabel }],
@@ -39,10 +49,9 @@ async function getGA4DailyTraffic(dateLabel: string): Promise<{ users: number; s
       ],
     });
     const row = response.rows?.[0];
-    if (!row?.metricValues?.length) return null;
-    const users = Number(row.metricValues[0]?.value ?? 0);
-    const sessions = Number(row.metricValues[1]?.value ?? 0);
-    const pageViews = Number(row.metricValues[2]?.value ?? 0);
+    const users = row?.metricValues?.[0] ? Number(row.metricValues[0].value) : 0;
+    const sessions = row?.metricValues?.[1] ? Number(row.metricValues[1].value) : 0;
+    const pageViews = row?.metricValues?.[2] ? Number(row.metricValues[2].value) : 0;
     return { users, sessions, pageViews };
   } catch (err) {
     console.error("GA4 daily traffic fetch failed:", err);
@@ -242,7 +251,16 @@ edcEmailRouter.post("/send-daily-report", async (req, res) => {
     });
   } catch (error) {
     console.error("Error sending daily report:", error);
-    res.status(500).json({ success: false, error: String(error) });
+    const msg = String(error);
+    if (msg.includes("DECODER routines::unsupported") || msg.includes("Getting metadata from plugin failed")) {
+      res.status(500).json({
+        success: false,
+        error: msg,
+        hint: "Firebase private key invalid on Render. Use FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY (not FIREBASE_SERVICE_ACCOUNT). For FIREBASE_PRIVATE_KEY paste the PEM as one line with \\n for each newline. Unset GOOGLE_APPLICATION_CREDENTIALS if set.",
+      });
+      return;
+    }
+    res.status(500).json({ success: false, error: msg });
   }
 });
 

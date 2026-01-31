@@ -1,30 +1,29 @@
 import admin from "firebase-admin";
 
-// Initialize Firebase Admin SDK
-// You can either use a service account JSON file or environment variables
-
-let app;
 try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    // Parse the service account from environment variable (JSON string)
+  // Preferred: path to JSON file on server (e.g. Render secret file). Not in repo, not in .env.
+  const keyPath =
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (keyPath) {
+    admin.initializeApp({
+      credential: admin.credential.cert(keyPath),
+    });
+  } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    app = admin.initializeApp({
+    admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
   } else {
-    // Fall back to individual environment variables
-    app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID || "erindawncampbell",
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      }),
-    });
+    throw new Error(
+      "Missing Firebase credentials: set FIREBASE_SERVICE_ACCOUNT_PATH (or GOOGLE_APPLICATION_CREDENTIALS) to a JSON file path, or FIREBASE_SERVICE_ACCOUNT to the JSON string"
+    );
   }
 } catch (error) {
   console.error(
     `There was an error setting up firebase admin in the server: ${error}`
   );
+  throw error;
 }
 
 const db = admin.firestore();
