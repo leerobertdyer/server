@@ -16,11 +16,27 @@ function getTodayUTC(): { start: Date; endExclusive: Date } {
   return { start, endExclusive };
 }
 
-/** GA4 traffic for one day. Returns null if not configured or API fails. */
-async function getGA4DailyTraffic(dateLabel: string): Promise<{ users: number; sessions: number; pageViews: number } | null> {
+type GA4Traffic = { users: number; sessions: number; pageViews: number };
+
+function parseTrafficRow(row: { metricValues?: Array<{ value?: string | null }> | null } | undefined): GA4Traffic {
+  const vals = row?.metricValues;
+  const users = vals?.[0]?.value != null ? Number(vals[0].value) : 0;
+  const sessions = vals?.[1]?.value != null ? Number(vals[1].value) : 0;
+  const pageViews = vals?.[2]?.value != null ? Number(vals[2].value) : 0;
+  return { users, sessions, pageViews };
+}
+
+/** GA4 traffic for today and last 7 days in one API call. Returns both or null on failure. */
+async function getGA4DailyAndLast7Traffic(
+  dateLabel: string
+): Promise<{ trafficToday: GA4Traffic; trafficLast7: GA4Traffic } | null> {
   const propertyId = process.env.GA4_PROPERTY_ID;
   if (!propertyId || !propertyId.trim()) return null;
   try {
+    const last7Start = new Date(dateLabel + "T00:00:00Z");
+    last7Start.setUTCDate(last7Start.getUTCDate() - 6);
+    const last7StartLabel = last7Start.toISOString().slice(0, 10);
+
     const { BetaAnalyticsDataClient } = await import("@google-analytics/data");
     let creds: { client_email?: string; private_key?: string } | undefined;
     const credsJson = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -39,22 +55,25 @@ async function getGA4DailyTraffic(dateLabel: string): Promise<{ users: number; s
             credentials: { client_email: creds.client_email, private_key: creds.private_key },
           })
         : new BetaAnalyticsDataClient();
+
     const [response] = await client.runReport({
       property: `properties/${propertyId.trim()}`,
-      dateRanges: [{ startDate: dateLabel, endDate: dateLabel }],
+      dateRanges: [
+        { startDate: dateLabel, endDate: dateLabel },
+        { startDate: last7StartLabel, endDate: dateLabel },
+      ],
       metrics: [
         { name: "activeUsers" },
         { name: "sessions" },
         { name: "screenPageViews" },
       ],
     });
-    const row = response.rows?.[0];
-    const users = row?.metricValues?.[0] ? Number(row.metricValues[0].value) : 0;
-    const sessions = row?.metricValues?.[1] ? Number(row.metricValues[1].value) : 0;
-    const pageViews = row?.metricValues?.[2] ? Number(row.metricValues[2].value) : 0;
-    return { users, sessions, pageViews };
+    const rows = response.rows ?? [];
+    const trafficLast7 = parseTrafficRow(rows[0]);
+    const trafficToday = parseTrafficRow(rows[1]);
+    return { trafficToday, trafficLast7 };
   } catch (err) {
-    console.error("GA4 daily traffic fetch failed:", err);
+    console.error("GA4 traffic fetch failed:", err);
     return null;
   }
 }
@@ -222,10 +241,19 @@ edcEmailRouter.post("/send-daily-report", async (req, res) => {
     const totalSubscribersSnap = await db.collection("subscribers").get();
     const totalSubscribers = totalSubscribersSnap.size;
 
-    const traffic = await getGA4DailyTraffic(dateLabel);
+    const trafficReport = await getGA4DailyAndLast7Traffic(dateLabel);
+    const trafficToday = trafficReport?.trafficToday ?? null;
+    const trafficLast7 = trafficReport?.trafficLast7 ?? null;
+    const propertyId = process.env.GA4_PROPERTY_ID?.trim();
+    const ga4ReportUrl =
+      propertyId != null && propertyId !== ""
+        ? `https://analytics.google.com/analytics/web/#/p${propertyId}`
+        : null;
     const { subject, html, text } = dailyReportEmailTemplate({
       dateLabel,
-      traffic,
+      trafficToday,
+      trafficLast7,
+      ga4ReportUrl,
       newSubscribers,
       salesToday,
       totalSubscribers,

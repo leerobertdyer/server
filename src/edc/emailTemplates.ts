@@ -253,7 +253,9 @@ export const receiptEmailTemplate: ReceiptEmailTemplate = (
 
 export type DailyReportParams = {
   dateLabel: string;
-  traffic: { users: number; sessions: number; pageViews: number } | null;
+  trafficToday: { users: number; sessions: number; pageViews: number } | null;
+  trafficLast7: { users: number; sessions: number; pageViews: number } | null;
+  ga4ReportUrl: string | null;
   newSubscribers: { email?: string; firstName?: string; lastName?: string }[];
   salesToday: { customerName?: string; grandTotal?: number; itemsSold?: string[] }[];
   totalSubscribers: number;
@@ -261,17 +263,41 @@ export type DailyReportParams = {
 
 export const dailyReportEmailTemplate = ({
   dateLabel,
-  traffic,
+  trafficToday,
+  trafficLast7,
+  ga4ReportUrl,
   newSubscribers,
   salesToday,
   totalSubscribers,
 }: DailyReportParams): { subject: string; html: string; text: string } => {
-  const trafficHtml = traffic != null
-    ? `<p style="color: #4a4a4a; margin: 0 0 16px 0;"><strong>Site traffic (visitors on erindawncampbell.com):</strong></p><p style="color: #4a4a4a; margin: 0 0 20px 0;">${traffic.users} users · ${traffic.sessions} sessions · ${traffic.pageViews} page views</p>`
-    : `<p style="color: #888; font-size: 14px; margin: 0 0 20px 0;">Site traffic: Not configured (set GA4_PROPERTY_ID and grant your service account Viewer access in GA4 to enable).</p>`;
-  const trafficText = traffic != null
-    ? `Site traffic (visitors on erindawncampbell.com): ${traffic.users} users, ${traffic.sessions} sessions, ${traffic.pageViews} page views\n\n`
-    : "Site traffic: Not configured\n\n";
+  const trafficNotConfigured = `<p style="color: #888; font-size: 14px; margin: 0 0 20px 0;">Site traffic: Not configured (set GA4_PROPERTY_ID and grant your service account Viewer access in GA4 to enable).</p>`;
+  const trafficTodayHtml =
+    trafficToday != null
+      ? `<p style="color: #4a4a4a; margin: 0 0 16px 0;"><strong>Site traffic today:</strong></p><p style="color: #4a4a4a; margin: 0 0 12px 0;">${trafficToday.users} users · ${trafficToday.sessions} sessions · ${trafficToday.pageViews} page views</p>`
+      : trafficNotConfigured;
+  const trafficLast7Html =
+    trafficLast7 != null
+      ? `<p style="color: #4a4a4a; margin: 0 0 16px 0;"><strong>Site traffic (last 7 days):</strong></p><p style="color: #4a4a4a; margin: 0 0 12px 0;">${trafficLast7.users} users · ${trafficLast7.sessions} sessions · ${trafficLast7.pageViews} page views</p>`
+      : "";
+  const ga4LinkHtml =
+    ga4ReportUrl != null
+      ? `<p style="margin: 0 0 20px 0;"><a href="${ga4ReportUrl}" style="color: #6b5b7a; text-decoration: underline;">View in Google Analytics →</a></p>`
+      : "";
+  const trafficHtml =
+    trafficToday != null
+      ? trafficTodayHtml + (trafficLast7 != null ? trafficLast7Html : "") + ga4LinkHtml
+      : trafficNotConfigured + ga4LinkHtml;
+
+  const trafficTodayText =
+    trafficToday != null
+      ? `Site traffic today: ${trafficToday.users} users, ${trafficToday.sessions} sessions, ${trafficToday.pageViews} page views\n\n`
+      : "Site traffic: Not configured\n\n";
+  const trafficLast7Text =
+    trafficLast7 != null
+      ? `Site traffic (last 7 days): ${trafficLast7.users} users, ${trafficLast7.sessions} sessions, ${trafficLast7.pageViews} page views\n\n`
+      : "";
+  const ga4LinkText = ga4ReportUrl != null ? `View in Google Analytics: ${ga4ReportUrl}\n\n` : "";
+  const trafficText = trafficTodayText + trafficLast7Text + ga4LinkText;
 
   const subscribersListHtml =
     newSubscribers.length > 0
