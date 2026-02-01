@@ -7,7 +7,7 @@ const edcSeoRouter = router();
 const SITE_URL = process.env.FRONT_END_URL || "https://www.erindawncampbell.com";
 
 /**
- * GET /edc-api/sitemap-products.xml
+ * GET /edc/sitemap-products.xml
  * Returns a sitemap of product detail URLs for crawlers. Products are loaded from Firestore;
  * only non-sold, non-hidden products are included.
  */

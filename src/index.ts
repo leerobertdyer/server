@@ -43,9 +43,9 @@ app.use(express.static(path.join(process.cwd(), "public")))
 app.use(express.json());
 
 app.use(router);
-app.use('/edc-api', edcStripeRouter)
-app.use('/edc-api', edcEmailRouter)
-app.use('/edc-api', edcSeoRouter)
-app.use('/av-api', avEmailRouter)
+app.use('/edc', edcStripeRouter)
+app.use('/edc', edcEmailRouter)
+app.use('/edc', edcSeoRouter)
+app.use('/av', avEmailRouter)
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
