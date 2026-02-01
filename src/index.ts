@@ -17,7 +17,9 @@ const allowlist = new Set([
     'https://www.leedyer.com',
     'https://nvelope.leedyer.com',
     'https://auntvicki.rocks',
-    'https://www.auntvicki.rocks'
+    'https://www.auntvicki.rocks',
+    'http://localhost:5173', 
+    'http://localhost:3000',
   ]);
   
   const corsOptions: CorsOptionsDelegate = (req, callback) => {
