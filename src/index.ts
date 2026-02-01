@@ -7,6 +7,7 @@ import edcStripeRouter from "./edc/edcStripeRouter"
 import edcEmailRouter from "./edc/edcEmailRouter";
 import edcSeoRouter from "./edc/edcSeoRouter";
 import avEmailRouter from "./auntVicki/avEmailRouter";
+import nvEmailRouter from "./nvelopes/nvEmailRouter";
 
 const allowlist = new Set([
     process.env.FRONT_END_URL,
@@ -47,5 +48,6 @@ app.use('/edc', edcStripeRouter)
 app.use('/edc', edcEmailRouter)
 app.use('/edc', edcSeoRouter)
 app.use('/av', avEmailRouter)
+app.use('/nvelopes', nvEmailRouter)
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
