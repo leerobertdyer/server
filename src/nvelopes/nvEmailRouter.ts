@@ -15,8 +15,6 @@ nvEmailRouter.post("/feedback", async (req, res) => {
 
   const normalizedRating = Math.min(5, Math.max(0, Number(rating) || 0));
 
-  console.log("Received Nvelopes feedback from:", email, "rating:", normalizedRating);
-
   try {
     const { subject, html, text } = nvelopesFeedbackTemplate({
       email: email.trim(),
@@ -32,7 +30,6 @@ nvEmailRouter.post("/feedback", async (req, res) => {
       text,
     });
 
-    console.log("Nvelopes feedback email sent successfully");
     res.status(200).json({ success: true, message: "Feedback sent" });
   } catch (error) {
     console.error("Error sending Nvelopes feedback:", error);

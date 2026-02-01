@@ -10,12 +10,14 @@ import avEmailRouter from "./auntVicki/avEmailRouter";
 import nvEmailRouter from "./nvelopes/nvEmailRouter";
 
 const allowlist = new Set([
-    process.env.FRONT_END_URL,
+    process.env.ERIN_DAWN_FRONT_END_URL,
     'https://erindawncampbell.com',
     'https://www.erindawncampbell.com',
     'https://leedyer.com',
     'https://www.leedyer.com',
     'https://nvelope.leedyer.com',
+    'https://www.nvelopes.app',
+    'https://nvelopes.app',
     'https://auntvicki.rocks',
     'https://www.auntvicki.rocks',
     'http://localhost:5173', 
