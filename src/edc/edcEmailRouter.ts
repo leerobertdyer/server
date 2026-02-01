@@ -209,7 +209,7 @@ edcEmailRouter.post("/send-new-series-email", async (req, res) => {
 })
 
 // Daily report: POST from cron; requires x-daily-report-secret header to match DAILY_REPORT_SECRET
-edcEmailRouter.post("/send-daily-report", async (req, res) => {
+edcEmailRouter.post("/daily-report", async (req, res) => {
   const secret = process.env.DAILY_REPORT_SECRET;
   if (!secret || req.headers["x-daily-report-secret"] !== secret) {
     return res.status(401).json({ success: false, error: "Unauthorized" });
