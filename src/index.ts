@@ -7,7 +7,7 @@ import edcStripeRouter from "./edc/edcStripeRouter"
 import edcEmailRouter from "./edc/edcEmailRouter";
 import edcSeoRouter from "./edc/edcSeoRouter";
 import avEmailRouter from "./auntVicki/avEmailRouter";
-import nvEmailRouter from "./nvelopes/nvEmailRouter";
+import nvelopesEmailRouter from "./nvelopes/nvelopesEmailRouter";
 
 const allowlist = new Set([
     process.env.ERIN_DAWN_FRONT_END_URL,
@@ -52,6 +52,6 @@ app.use('/edc', edcStripeRouter)
 app.use('/edc', edcEmailRouter)
 app.use('/edc', edcSeoRouter)
 app.use('/av', avEmailRouter)
-app.use('/nvelopes', nvEmailRouter)
+app.use('/nvelopes', nvelopesEmailRouter)
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
