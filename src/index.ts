@@ -8,6 +8,8 @@ import edcEmailRouter from "./edc/edcEmailRouter";
 import edcSeoRouter from "./edc/edcSeoRouter";
 import avEmailRouter from "./auntVicki/avEmailRouter";
 import nvelopesEmailRouter from "./nvelopes/nvelopesEmailRouter";
+import mcpRouter from "./mcp/router"
+import chatRouter from "./chat/router"
 
 const allowlist = new Set([
     process.env.ERIN_DAWN_FRONT_END_URL,
@@ -20,6 +22,7 @@ const allowlist = new Set([
     'https://nvelopes.app',
     'https://auntvicki.rocks',
     'https://www.auntvicki.rocks',
+    'https://labrynth.leedyer.com',
     'http://localhost:5173', 
     'http://localhost:3000',
   ]);
@@ -48,6 +51,8 @@ app.use(express.static(path.join(process.cwd(), "public")))
 app.use(express.json());
 
 app.use(router);
+app.use("/mcp", mcpRouter);
+app.use("/chat", chatRouter)
 app.use('/edc', edcStripeRouter)
 app.use('/edc', edcEmailRouter)
 app.use('/edc', edcSeoRouter)

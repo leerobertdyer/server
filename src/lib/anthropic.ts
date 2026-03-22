@@ -4,7 +4,8 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function sendPrompt(message: string, systemPrompt: string) {
+// Maybe don't need this at all - if no tool used mcpPrompt would be same thing
+export async function sendRawPrompt(message: string, systemPrompt: string) {
   const resp = await client.messages.create({
     model: "claude-haiku-4-5",
     max_tokens: 1024,
