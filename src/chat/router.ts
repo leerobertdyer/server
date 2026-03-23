@@ -6,7 +6,9 @@ const router = Router();
 function checkForApiKey(req: Request, res: Response, next: NextFunction) {
   if (req.headers["x-chat-api-secret"] !== process.env.CHAT_API_SECRET) {
     res.status(401).json({ error: "Unauthorized" });
+    return;
   }
+  next();
 }
 
 router.use(checkForApiKey);
